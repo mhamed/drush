@@ -1,49 +1,29 @@
 # -*- mode: shell-script; mode: flyspell-prog; ispell-local-dictionary: "american" -*-
 #
-# Example bash aliases to improve your drush experience with bash.
-# Copy this file to your home directory, rename and customize it to
-# suit, and source it from your ~/.bash_profile file.
+# Example bash aliases to improve your Drush experience with bash.
+# Use `drush init` to copy this file to your home directory, rename and
+# customize it to suit, and source it from your ~/.bashrc file.
 #
-# Example - rename this to .drush_bashrc, and in your
-# ~/.bash_profile add:
-#
-#
-#    if [ -f ~/.drush_bashrc ] ; then
-#        . ~/.drush_bashrc
-#    fi
-#
-# Features:
-#
-# Finds and sources drush.complete.sh from your drush directory,
-# enabling autocompletion for drush commands.
-#
-# Creates aliases to common drush commands that work in a global context:
+# Creates aliases to common Drush commands that work in a global context:
 #
 #       dr               - drush
 #       ddd              - drush drupal-directory
-#       dl               - drush pm-download
 #       ev               - drush php-eval
 #       sa               - drush site-alias
-#       sa               - drush site-alias --local (show local site aliases)
+#       sa               - drush site-alias --local-only (show local site aliases)
 #       st               - drush core-status
 #       use              - drush site-set
 #
-# Aliases for drush commands that work on the current drupal site:
+# Aliases for Drush commands that work on the current drupal site:
 #
-#       cc               - drush cache-clear
-#       cca              - drush cache-clear all
-#       dis              - drush pm-disable
+#       cr               - drush cache-rebuild
 #       en               - drush pm-enable
-#       i                - drush pm-info
 #       pml              - drush pm-list
-#       rf               - drush pm-refresh
 #       unin             - drush pm-uninstall
-#       up               - drush pm-update
-#       upc              - drush pm-updatecode
 #       updb             - drush updatedb
 #       q                - drush sql-query
 #
-# Provides several common shell commands to work better with drush:
+# Provides several common shell commands to work better with Drush:
 #
 #       ddd @dev         - print the path to the root directory of @dev
 #       cdd @dev         - change the current working directory to @dev
@@ -71,32 +51,24 @@
 #       git               - gitd
 #
 # These standard commands behave exactly the same as they always
-# do, unless a drush site specification such as @dev or @live:%files
+# do, unless a Drush site specification such as @dev or @live:%files
 # is used in one of the arguments.
 
-# Aliases for common drush commands that work in a global context.
+# Aliases for common Drush commands that work in a global context.
 alias dr='drush'
-alias ddd='drush drupal-directory'
-alias dl='drush pm-download'
-alias ev='drush php-eval'
-alias sa='drush site-alias'
-alias lsa='drush site-alias --local'
-alias st='drush core-status'
-alias use='drush site-set'
+alias ddd='drush drupal:directory'
+alias ev='drush php:eval'
+alias sa='drush site:alias'
+alias st='drush core:status'
+alias use='drush site:set'
 
-# Aliases for drush commands that work on the current drupal site
-alias cc='drush cache-clear'
-alias cca='drush cache-clear all'
-alias dis='drush pm-disable'
-alias en='drush pm-enable'
-alias pmi='drush pm-info'
-alias pml='drush pm-list'
-alias rf='drush pm-refresh'
-alias unin='drush pm-uninstall'
-alias up='drush pm-update'
-alias upc='drush pm-updatecode'
+# Aliases for Drush commands that work on the current drupal site
+alias cr='drush cache:rebuild'
+alias en='drush pm:enable'
+alias pml='drush pm:list'
+alias unin='drush pm:uninstall'
 alias updb='drush updatedb'
-alias q='drush sql-query'
+alias q='drush sql:query'
 
 # Overrides for standard shell commands. Uncomment to enable.  Alias
 # cd='cdd' if you want to be able to use cd @remote to ssh to a
@@ -107,28 +79,6 @@ alias q='drush sql-query'
 # alias cp='cpd'
 # alias ssh='dssh'
 # alias git='gitd'
-
-# Find the drush executable and test it.
-d=$(which drush)
-# If no program is found try an alias.
-if [ -z "$d" ]; then
-  d=$(alias drush | cut -f 2 -d '=' | sed "s/'//g")
-fi
-# Test that drush is an executable.
-[ -x "$d" ] || exit 0
-
-# If the file found is a symlink, resolve to the actual file.
-if [ -h "$d" ] ; then
-  # Change `readlink` to `readlink -f` if your drush is a symlink to a symlink. -f is unavailable on OSX's readlink.
-  d=$(readlink $d)
-fi
-
-# Get the directory that drush is stored in.
-d="${d%/*}"
-# If we have found drush.complete.sh, then source it.
-if [ -f "$d/drush.complete.sh" ] ; then
-  . "$d/drush.complete.sh"
-fi
 
 # We extend the cd command to allow convenient
 # shorthand notations, such as:
@@ -143,30 +93,44 @@ fi
 # that will ssh to the remote server when a remote site
 # specification is used.
 function cddl() {
+  fastcddl "$1"
+  use @self
+}
+
+# Use this function instead of 'cddl' if you have a very large number
+# of alias files, and the 'cddl' function is getting too slow as a result.
+# This function does not automatically set your prompt to the site that
+# you 'cd' to, as 'cddl' does.
+function fastcddl() {
   s="$1"
   if [ -z "$s" ]
   then
     builtin cd
   elif [ "${s:0:1}" == "@" ] || [ "${s:0:1}" == "%" ]
   then
-    d="$(drush drupal-directory $1 --local 2>/dev/null)"
+    d="$(drush drupal:directory $1 --local-only 2>/dev/null)"
     if [ $? == 0 ]
     then
       echo "cd $d";
       builtin cd "$d";
     else
-      echo "Cannot cd to remote site $s"
+      t="$(drush site-alias $1 >/dev/null 2>/dev/null)"
+      if [ $? == 0 ]
+      then
+        echo "Cannot cd to remote site $s"
+      else
+        echo "Cannot cd to $s"
+      fi
     fi
   else
     builtin cd "$s";
   fi
 }
 
-# Works just like the `cd` shell alias above, with one additional
+# Works just like the `cddl` shell alias above, with one additional
 # feature: `cdd @remote-site` works like `ssh @remote-site`,
 # whereas cd above will fail unless the site alias is local.  If
-# you prefer the `ssh` behavior, you can rename this shell alias
-# to `cd`.
+# you prefer this behavior, you can add `alias cd='cdd'` to your .bashrc
 function cdd() {
   s="$1"
   if [ -z "$s" ]
@@ -174,8 +138,8 @@ function cdd() {
     builtin cd
   elif [ "${s:0:1}" == "@" ] || [ "${s:0:1}" == "%" ]
   then
-    d="$(drush drupal-directory $s 2>/dev/null)"
-    rh="$(drush sa ${s%%:*} --fields=remote-host --format=list)"
+    d="$(drush drupal:directory $s 2>/dev/null)"
+    rh="$(drush sa ${s%%:*} --fields=host --format=list)"
     if [ -z "$rh" ]
     then
       echo "cd $d"
@@ -202,7 +166,7 @@ function gitd() {
   if [ -n "$s" ] && [ ${s:0:1} == "@" ] || [ ${s:0:1} == "%" ]
   then
     d="$(drush drupal-directory $s 2>/dev/null)"
-    rh="$(drush sa ${s%%:*} --fields=remote-host --format=list)"
+    rh="$(drush sa ${s%%:*} --fields=host --format=list)"
     if [ -n "$rh" ]
     then
       drush ${s%%:*} ssh "cd '$d' ; git ${@:2}"
@@ -225,10 +189,10 @@ function lsd() {
   for a in "$@" ; do
     if [ ${a:0:1} == "@" ] || [ ${a:0:1} == "%" ]
     then
-      p[${#p[@]}]="$(drush drupal-directory $a 2>/dev/null)"
+      p[${#p[@]}]="$(drush drupal:directory $a 2>/dev/null)"
       if [ ${a:0:1} == "@" ]
       then
-        rh="$(drush sa ${a%:*} --fields=remote-host --format=list)"
+        rh="$(drush sa ${a%:*} --fields=host --format=list)"
         if [ -n "$rh" ]
         then
           r=${a%:*}
@@ -253,7 +217,7 @@ function cpd() {
   for a in "$@" ; do
     if [ ${a:0:1} == "@" ] || [ ${a:0:1} == "%" ]
     then
-      p[${#p[@]}]="$(drush drupal-directory $a --local 2>/dev/null)"
+      p[${#p[@]}]="$(drush drupal:directory $a --local-only 2>/dev/null)"
     elif [ -n "$a" ]
     then
       p[${#p[@]}]="$a"
@@ -273,10 +237,3 @@ function dssh() {
     "ssh" "$@"
   fi
 }
-
-# Drush checks the current PHP version to ensure compatibility, and fails with
-# an error if less than the supported minimum (currently 5.3.0). If you would
-# like to try to run Drush on a lower version of PHP, you can un-comment the
-# line below to skip this check. Note, however, that this is un-supported.
-
-# DRUSH_NO_MIN_PHP=TRUE
